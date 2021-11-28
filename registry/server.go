@@ -1,7 +1,9 @@
 package registry
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,13 +15,52 @@ const ExportServersUrl = "http://localhost" + ExportServerPort + "/services"
 
 type registry struct {
 	registations []Registration
-	mutex        *sync.Mutex
+	mutex        *sync.RWMutex
 }
 
 func (r *registry) add(reg Registration) error {
 	r.mutex.Lock()
 	r.registations = append(r.registations, reg)
 	r.mutex.Unlock()
+	err := r.sendRequiredService(reg)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r registry) sendRequiredService(reg Registration) error {
+	r.mutex.RLock()
+	defer r.mutex.Unlock()
+	var p patch
+	for _, serviceReg := range r.registations {
+		for _, serviceReq := range reg.Required {
+			if serviceReg.ServiceName == serviceReq {
+				p.Added = append(p.Added, patchEntry{
+					Name: serviceReg.ServiceName,
+					Url:  serviceReg.ServiceUrl,
+				})
+			}
+		}
+	}
+	err := r.sendPatch(p, reg.ServiceUpdateUrl)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (r registry) sendPatch(p patch, url string) error {
+	pJson, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(pJson))
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Failed to send patch with code:%v", resp.StatusCode)
+	}
 	return nil
 }
 
@@ -34,7 +75,7 @@ func (r *registry) remove(url string) error {
 
 var reg = registry{
 	registations: make([]Registration, 0),
-	mutex:        new(sync.Mutex),
+	mutex:        new(sync.RWMutex),
 }
 
 type RegistrationService struct{}
