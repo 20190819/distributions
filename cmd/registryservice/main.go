@@ -11,7 +11,7 @@ import (
 func main() {
 	http.Handle("/services", &registry.RegistrationService{})
 	var srv http.Server
-	srv.Addr = registry.ServerPort
+	srv.Addr = registry.ExportServerPort
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		log.Println(srv.ListenAndServe())
