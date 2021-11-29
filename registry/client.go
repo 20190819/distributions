@@ -17,6 +17,7 @@ func RegistyServiceHandler(r Registration) error {
 		return err
 	}
 	http.Handle(serviceUpdateUrl.Path, &serviceUpdateHandler{})
+
 	buf := new(bytes.Buffer)
 	enc := json.NewEncoder(buf)
 	err = enc.Encode(r)
@@ -35,7 +36,7 @@ func RegistyServiceHandler(r Registration) error {
 
 type serviceUpdateHandler struct{}
 
-func (supdate *serviceUpdateHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (suh serviceUpdateHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		rw.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -72,20 +73,25 @@ type providers struct {
 	mutex    *sync.RWMutex
 }
 
+var prov = providers{
+	services: make(map[ServiceName][]string, 0),
+	mutex:    new(sync.RWMutex),
+}
+
 func (p *providers) Update(pat patch) {
 	p.mutex.RLock()
-	defer p.mutex.Unlock()
+	defer p.mutex.RUnlock()
 	for _, patchEntry := range pat.Added {
-		if _, ok := p.services[patchEntry.Name]; ok {
-			if !ok {
-				p.services[patchEntry.Name] = make([]string, 0)
-			}
+		_, ok := p.services[patchEntry.Name]
+		if !ok {
+			p.services[patchEntry.Name] = make([]string, 0)
 		} else {
 			p.services[patchEntry.Name] = append(p.services[patchEntry.Name], patchEntry.Url)
 		}
 	}
 	for _, patchEntry := range pat.Removed {
-		if patchUrls, ok := p.services[patchEntry.Name]; ok {
+		patchUrls, ok := p.services[patchEntry.Name]
+		if ok {
 			for i := range patchUrls {
 				if patchUrls[i] == patchEntry.Url {
 					p.services[patchEntry.Name] = append(patchUrls[:i], patchUrls[i+1:]...)
@@ -106,9 +112,4 @@ func (p providers) get(name ServiceName) (string, error) {
 
 func GetProvider(name ServiceName) (string, error) {
 	return prov.get(name)
-}
-
-var prov = providers{
-	services: make(map[ServiceName][]string, 0),
-	mutex:    new(sync.RWMutex),
 }
