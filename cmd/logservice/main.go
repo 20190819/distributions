@@ -12,9 +12,12 @@ import (
 func main() {
 	log.Run("./distributed.log")
 	host, port := "localhost", "4000"
+	serverAddr := fmt.Sprintf("http://%s:%s", host, port)
 	r := registry.Registration{
-		ServiceName: "log Service",
-		ServiceUrl:  fmt.Sprintf("http://%s:%s", host, port),
+		ServiceName:      registry.LogService,
+		ServiceUrl:       serverAddr,
+		RequiredServices: make([]registry.ServiceName, 0),
+		ServiceUpdateUrl: serverAddr + "/services",
 	}
 	ctx, err := service.Start(
 		context.Background(),

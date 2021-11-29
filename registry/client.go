@@ -104,8 +104,8 @@ func (p providers) get(name ServiceName) (string, error) {
 	return providers[idx], nil
 }
 
-func (p providers) GetProvider(name ServiceName) (string, error) {
-	return p.get(name)
+func GetProvider(name ServiceName) (string, error) {
+	return prov.get(name)
 }
 
 var prov = providers{

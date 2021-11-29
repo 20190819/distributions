@@ -3,15 +3,15 @@ package registry
 type Registration struct {
 	ServiceName      ServiceName
 	ServiceUrl       string
-	Required         []ServiceName
+	RequiredServices []ServiceName
 	ServiceUpdateUrl string
 }
 
 type ServiceName string
 
 const (
-	logService   = ServiceName("logService")
-	gradeService = ServiceName("gradeService")
+	LogService     = ServiceName("logService")
+	GradingService = ServiceName("gradingService")
 )
 
 type patchEntry struct {

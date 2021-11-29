@@ -34,7 +34,7 @@ func (r registry) sendRequiredService(reg Registration) error {
 	defer r.mutex.Unlock()
 	var p patch
 	for _, serviceReg := range r.registations {
-		for _, serviceReq := range reg.Required {
+		for _, serviceReq := range reg.RequiredServices {
 			if serviceReg.ServiceName == serviceReq {
 				p.Added = append(p.Added, patchEntry{
 					Name: serviceReg.ServiceName,
