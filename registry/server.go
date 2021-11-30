@@ -30,7 +30,7 @@ func (r *registry) add(reg Registration) error {
 }
 
 func (r registry) sendRequiredService(reg Registration) error {
-	r.mutex.RLock()
+	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	var p patch
 	for _, serviceReg := range r.registations {
