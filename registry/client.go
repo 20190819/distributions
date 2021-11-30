@@ -16,6 +16,7 @@ func RegistyServiceHandler(r Registration) error {
 	if err != nil {
 		return err
 	}
+	// todo 干啥的?
 	http.Handle(serviceUpdateUrl.Path, &serviceUpdateHandler{})
 
 	buf := new(bytes.Buffer)
@@ -81,6 +82,7 @@ var prov = providers{
 func (p *providers) Update(pat patch) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
+	fmt.Printf("Updated received %v\n", pat)
 	for _, patchEntry := range pat.Added {
 		_, ok := p.services[patchEntry.Name]
 		if !ok {
@@ -105,6 +107,9 @@ func (p providers) get(name ServiceName) (string, error) {
 	providers, ok := p.services[name]
 	if !ok {
 		return "", fmt.Errorf("No providers for service %v", name)
+	}
+	if len(providers) == 0 {
+		return "", fmt.Errorf("Failed to get any provider with count:%v", len(providers))
 	}
 	idx := int(rand.Float32() * float32(len(providers)))
 	return providers[idx], nil
