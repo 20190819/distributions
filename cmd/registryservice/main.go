@@ -19,7 +19,7 @@ func main() {
 	}()
 
 	go func() {
-		fmt.Println("Registry service Started. Press any key to shutdown.")
+		fmt.Println("注册服务启动 Registry service Started. Press any key to shutdown.")
 		var s string
 		fmt.Scanln(&s)
 		srv.Shutdown(ctx)

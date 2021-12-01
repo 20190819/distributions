@@ -32,7 +32,7 @@ func startService(ctx context.Context, serviceName registry.ServiceName, host, p
 		cancel()
 	}()
 	go func() {
-		fmt.Printf("%v started. Press any key to shutdown...\n", serviceName)
+		fmt.Printf("启动服务 %v started. Press any key to shutdown...\n", serviceName)
 		var s string
 		fmt.Scanln(&s)
 		err := registry.ShutdownServiceHandler(fmt.Sprintf("http://%s:%s", host, port))

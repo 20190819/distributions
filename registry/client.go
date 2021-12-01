@@ -82,14 +82,12 @@ var prov = providers{
 func (p *providers) Update(pat patch) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
-	fmt.Printf("Updated received %v\n", pat)
 	for _, patchEntry := range pat.Added {
-		_, ok := p.services[patchEntry.Name]
-		if !ok {
+		// p.services 中没有这个 key 则初始化
+		if _, ok := p.services[patchEntry.Name]; !ok {
 			p.services[patchEntry.Name] = make([]string, 0)
-		} else {
-			p.services[patchEntry.Name] = append(p.services[patchEntry.Name], patchEntry.Url)
 		}
+		p.services[patchEntry.Name] = append(p.services[patchEntry.Name], patchEntry.Url)
 	}
 	for _, patchEntry := range pat.Removed {
 		patchUrls, ok := p.services[patchEntry.Name]

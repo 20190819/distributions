@@ -29,9 +29,12 @@ func main() {
 	if err != nil {
 		stlog.Fatal(err)
 	}
-
-	if logProvider, err := registry.GetProvider(registry.LogService); err == nil {
-		fmt.Printf("Logging service found at: %s\n", logProvider)
+	// 获取依赖的服务
+	logProvider, err := registry.GetProvider(registry.LogService)
+	if err != nil {
+		stlog.Fatal(err)
+	} else {
+		fmt.Printf("依赖服务发现 Logging service found at: %s\n", logProvider)
 		log.SetClientLogger(logProvider, r.ServiceName)
 	}
 

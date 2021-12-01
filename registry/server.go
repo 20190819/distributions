@@ -19,9 +19,11 @@ type registry struct {
 }
 
 func (r *registry) add(reg Registration) error {
+	// 注册服务
 	r.mutex.Lock()
 	r.registations = append(r.registations, reg)
 	r.mutex.Unlock()
+	// 加载依赖的服务
 	err := r.sendRequiredService(reg)
 	if err != nil {
 		return err
