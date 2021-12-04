@@ -9,3 +9,15 @@
 ### 业务服务
 - grades
 
+```go
+cd cmd/registryservice
+go run .
+
+cd cmd/logservice
+go run .
+
+cd cmd/gradingservice
+go run .
+
+```
+
