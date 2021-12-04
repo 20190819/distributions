@@ -11,11 +11,20 @@ import (
 	"sync"
 )
 
-func RegistyServiceHandler(r Registration) error {
+func RegistyService(r Registration) error {
 	serviceUpdateUrl, err := url.Parse(r.ServiceUpdateUrl)
 	if err != nil {
 		return err
 	}
+
+	HeartbeatUrl, err := url.Parse(r.HeartbeatUrl)
+	if err != nil {
+		return err
+	}
+
+	http.HandleFunc(HeartbeatUrl.Path, func(rw http.ResponseWriter, r *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+	})
 
 	http.Handle(serviceUpdateUrl.Path, &serviceUpdateHandler{})
 

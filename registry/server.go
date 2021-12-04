@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 )
 
 const ExportServerPort = ":3000"
@@ -29,6 +30,13 @@ func (r *registry) add(reg Registration) error {
 	if err != nil {
 		return err
 	}
+	// 服务发现通知
+	r.notify(patch{Added: []patchEntry{
+		{
+			Name: reg.ServiceName,
+			Url:  reg.ServiceUrl,
+		},
+	}})
 	return nil
 }
 
@@ -124,6 +132,46 @@ func (r *registry) remove(url string) error {
 	return nil
 }
 
+func (r registry) heartbeat(sec time.Duration) {
+	for {
+		var wg sync.WaitGroup
+		for _, reg := range reg.registations {
+			wg.Add(1)
+			go func(reg Registration) {
+				defer wg.Done()
+				success := true
+			loop:
+				for attemps := 0; attemps < 3; attemps++ {
+					resp, err := http.Get(reg.HeartbeatUrl)
+					if resp.StatusCode == http.StatusOK {
+						fmt.Printf("心跳检测 heartbeat check passed for service %v\n", reg.ServiceName)
+						if !success {
+							r.add(reg)
+						}
+						break loop
+					}
+					fmt.Printf("心跳检测 heartbeat check failed for service %v \n", reg.ServiceName)
+					if err != nil {
+						log.Println(err)
+					}
+					success = false
+					r.remove(reg.ServiceUrl)
+					time.Sleep(time.Second)
+				}
+			}(reg)
+		}
+		wg.Wait()
+		time.Sleep(sec)
+	}
+}
+
+func HandleHeartbeat() {
+	var once sync.Once
+	once.Do(func() {
+		go reg.heartbeat(3 * time.Second)
+	})
+}
+
 var reg = registry{
 	registations: make([]Registration, 0),
 	mutex:        new(sync.RWMutex),
@@ -145,13 +193,7 @@ func (s RegistrationService) ServeHTTP(rw http.ResponseWriter, r *http.Request) 
 		}
 		// 服务注册
 		err = reg.add(r)
-		// 服务发现通知
-		reg.notify(patch{Added: []patchEntry{
-			{
-				Name: r.ServiceName,
-				Url:  r.ServiceUrl,
-			},
-		}})
+
 		if err != nil {
 			log.Println(err)
 			rw.WriteHeader(http.StatusBadRequest)

@@ -9,6 +9,9 @@ import (
 )
 
 func main() {
+	// 心跳
+	registry.HandleHeartbeat()
+
 	http.Handle("/services", &registry.RegistrationService{})
 	var srv http.Server
 	srv.Addr = registry.ExportServerPort

@@ -14,7 +14,7 @@ func Start(ctx context.Context, host, port string, r registry.Registration,
 	// 启动服务
 	ctx = startService(ctx, r.ServiceName, host, port)
 	// 注册服务
-	registry.RegistyServiceHandler(r)
+	registry.RegistyService(r)
 	return ctx, nil
 }
 
