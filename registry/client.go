@@ -16,7 +16,7 @@ func RegistyServiceHandler(r Registration) error {
 	if err != nil {
 		return err
 	}
-	// todo 干啥的?
+
 	http.Handle(serviceUpdateUrl.Path, &serviceUpdateHandler{})
 
 	buf := new(bytes.Buffer)
@@ -49,10 +49,11 @@ func (suh serviceUpdateHandler) ServeHTTP(rw http.ResponseWriter, r *http.Reques
 		log.Println(err)
 		rw.WriteHeader(http.StatusBadRequest)
 	}
+	fmt.Printf("服务更新 %+v\n", p)
 	prov.Update(p)
 }
 
-func ShutdownServiceHandler(url string) error {
+func ShutdownService(url string) error {
 	buf := bytes.NewBuffer([]byte(url))
 	req, err := http.NewRequest(http.MethodDelete, ExportServersUrl, buf)
 	if err != nil {

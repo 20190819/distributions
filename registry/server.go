@@ -19,6 +19,7 @@ type registry struct {
 }
 
 func (r *registry) add(reg Registration) error {
+	log.Printf("添加服务 Add Service:%v with Url:%s\n", reg.ServiceName, reg.ServiceUrl)
 	// 注册服务
 	r.mutex.Lock()
 	r.registations = append(r.registations, reg)
@@ -29,6 +30,43 @@ func (r *registry) add(reg Registration) error {
 		return err
 	}
 	return nil
+}
+
+func (r registry) notify(fullPatch patch) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	for _, reg := range r.registations {
+		go func(reg Registration) {
+			for _, reqSrvName := range reg.RequiredServices {
+				p := new(patch)
+				p.Added = []patchEntry{}
+				p.Removed = []patchEntry{}
+
+				sendUpdate := false
+
+				for _, added := range fullPatch.Added {
+					if added.Name == reqSrvName {
+						p.Added = append(p.Added, added)
+						sendUpdate = true
+					}
+				}
+				for _, removed := range fullPatch.Removed {
+					if removed.Name == reqSrvName {
+						p.Removed = append(p.Removed, removed)
+						sendUpdate = true
+					}
+				}
+				// 发送通知
+				if sendUpdate {
+					err := r.sendPatch(*p, reg.ServiceUpdateUrl)
+					if err != nil {
+						log.Println(err)
+						return
+					}
+				}
+			}
+		}(reg)
+	}
 }
 
 func (r registry) sendRequiredService(reg Registration) error {
@@ -51,6 +89,7 @@ func (r registry) sendRequiredService(reg Registration) error {
 	}
 	return nil
 }
+
 func (r registry) sendPatch(p patch, url string) error {
 	pJson, err := json.Marshal(p)
 	if err != nil {
@@ -67,9 +106,19 @@ func (r registry) sendPatch(p patch, url string) error {
 }
 
 func (r *registry) remove(url string) error {
-	for k, item := range r.registations {
-		if item.ServiceUrl == url {
-			r.registations = append(r.registations[:k], r.registations[k+1:]...)
+	for i, srv := range reg.registations {
+		if srv.ServiceUrl == url {
+			reg.notify(patch{
+				Removed: []patchEntry{
+					{
+						Name: srv.ServiceName,
+						Url:  srv.ServiceUrl,
+					},
+				},
+			})
+			r.mutex.Lock()
+			reg.registations = append(reg.registations[:i], r.registations[i+1:]...)
+			r.mutex.Unlock()
 		}
 	}
 	return nil
@@ -94,8 +143,15 @@ func (s RegistrationService) ServeHTTP(rw http.ResponseWriter, r *http.Request) 
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		log.Printf("Adding Service:%v with Url:%s\n", r.ServiceName, r.ServiceUrl)
+		// 服务注册
 		err = reg.add(r)
+		// 服务发现通知
+		reg.notify(patch{Added: []patchEntry{
+			{
+				Name: r.ServiceName,
+				Url:  r.ServiceUrl,
+			},
+		}})
 		if err != nil {
 			log.Println(err)
 			rw.WriteHeader(http.StatusBadRequest)
@@ -108,7 +164,7 @@ func (s RegistrationService) ServeHTTP(rw http.ResponseWriter, r *http.Request) 
 			rw.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		log.Printf("Removing Service with url:%s", string(payload))
+		log.Printf("移除服务 Service with url:%s", string(payload))
 		err = reg.remove(string(payload))
 		if err != nil {
 			log.Println(err)
